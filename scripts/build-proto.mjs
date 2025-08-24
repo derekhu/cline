@@ -13,7 +13,49 @@ import { main as generateProtoBusSetup } from "./generate-protobus-setup.mjs"
 import { loadProtoDescriptorSet } from "./proto-utils.mjs"
 
 const require = createRequire(import.meta.url)
-const PROTOC = path.join(require.resolve("grpc-tools"), "../bin/protoc")
+
+// Try different protoc sources for better Windows compatibility
+function findProtoc() {
+	// Option 1: Try system-installed protoc first (most reliable)
+	try {
+		const systemProtoc = execSync("where protoc", { encoding: "utf8" }).trim().split("\n")[0]
+		if (systemProtoc && systemProtoc.length > 0) {
+			console.log(chalk.green(`Using system protoc: ${systemProtoc}`))
+			return systemProtoc
+		}
+	} catch {
+		// System protoc not found, continue to fallbacks
+	}
+
+	// Option 2: Try grpc-tools as fallback
+	try {
+		const grpcToolsProtoc = path.join(require.resolve("grpc-tools"), "../bin/protoc")
+		// Use require('fs').existsSync for synchronous check
+		const fsSync = require("fs")
+		if (fsSync.existsSync(grpcToolsProtoc)) {
+			console.log(chalk.yellow(`Using grpc-tools protoc: ${grpcToolsProtoc}`))
+			return grpcToolsProtoc
+		}
+	} catch {
+		// grpc-tools not available
+	}
+
+	// Option 3: Try @protobuf-ts/protoc (alternative npm package)
+	try {
+		const protobufTsProtoc = require.resolve("@protobuf-ts/protoc/protoc")
+		const fsSync = require("fs")
+		if (fsSync.existsSync(protobufTsProtoc)) {
+			console.log(chalk.cyan(`Using @protobuf-ts/protoc: ${protobufTsProtoc}`))
+			return protobufTsProtoc
+		}
+	} catch {
+		// @protobuf-ts/protoc not available
+	}
+
+	throw new Error("No protoc binary found! Please install protoc system-wide or install grpc-tools")
+}
+
+const PROTOC = findProtoc()
 
 const PROTO_DIR = path.resolve("proto")
 const TS_OUT_DIR = path.resolve("src/shared/proto")
