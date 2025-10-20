@@ -4,6 +4,7 @@ import {
 	OpenRouterModelInfo,
 	ModelsApiConfiguration as ProtoApiConfiguration,
 	ApiProvider as ProtoApiProvider,
+	OcaModelInfo as ProtoOcaModelInfo,
 	ThinkingConfig,
 } from "@shared/proto/cline/models"
 import {
@@ -13,6 +14,7 @@ import {
 	OpenAiCompatibleModelInfo as AppOpenAiCompatibleModelInfo,
 	BedrockModelId,
 	ModelInfo,
+	OcaModelInfo,
 } from "../../api"
 
 // Convert application ThinkingConfig to proto ThinkingConfig
@@ -82,6 +84,53 @@ function convertProtoToModelInfo(info: OpenRouterModelInfo | undefined): ModelIn
 		thinkingConfig: convertProtoToThinkingConfig(info.thinkingConfig),
 		supportsGlobalEndpoint: info.supportsGlobalEndpoint,
 		tiers: info.tiers.length > 0 ? info.tiers : undefined,
+	}
+}
+
+// Convert application ModelInfo to proto OcaModelInfo
+function convertOcaModelInfoToProtoOcaModelInfo(info: OcaModelInfo | undefined): ProtoOcaModelInfo | undefined {
+	if (!info) {
+		return undefined
+	}
+
+	return {
+		maxTokens: info.maxTokens,
+		contextWindow: info.contextWindow,
+		supportsImages: info.supportsImages,
+		supportsPromptCache: info.supportsPromptCache ?? false,
+		inputPrice: info.inputPrice,
+		outputPrice: info.outputPrice,
+		cacheWritesPrice: info.cacheWritesPrice,
+		cacheReadsPrice: info.cacheReadsPrice,
+		description: info.description,
+		thinkingConfig: convertThinkingConfigToProto(info.thinkingConfig),
+		surveyContent: info.surveyContent,
+		surveyId: info.surveyId,
+		banner: info.banner,
+		modelName: info.modelName,
+	}
+}
+
+// Convert proto OpenRouterModelInfo to application ModelInfo
+function convertProtoOcaModelInfoToOcaModelInfo(info: ProtoOcaModelInfo | undefined): OcaModelInfo | undefined {
+	if (!info) {
+		return undefined
+	}
+
+	return {
+		maxTokens: info.maxTokens,
+		contextWindow: info.contextWindow,
+		supportsImages: info.supportsImages,
+		supportsPromptCache: info.supportsPromptCache,
+		inputPrice: info.inputPrice,
+		outputPrice: info.outputPrice,
+		cacheWritesPrice: info.cacheWritesPrice,
+		cacheReadsPrice: info.cacheReadsPrice,
+		description: info.description,
+		surveyContent: info.surveyContent,
+		surveyId: info.surveyId,
+		banner: info.banner,
+		modelName: info.modelName,
 	}
 }
 
@@ -212,6 +261,8 @@ function convertApiProviderToProto(provider: string | undefined): ProtoApiProvid
 			return ProtoApiProvider.DEEPSEEK
 		case "qwen":
 			return ProtoApiProvider.QWEN
+		case "qwen-code":
+			return ProtoApiProvider.QWEN_CODE
 		case "doubao":
 			return ProtoApiProvider.DOUBAO
 		case "mistral":
@@ -252,13 +303,17 @@ function convertApiProviderToProto(provider: string | undefined): ProtoApiProvid
 			return ProtoApiProvider.VERCEL_AI_GATEWAY
 		case "zai":
 			return ProtoApiProvider.ZAI
+		case "dify":
+			return ProtoApiProvider.DIFY
+		case "oca":
+			return ProtoApiProvider.OCA
 		default:
 			return ProtoApiProvider.ANTHROPIC
 	}
 }
 
 // Convert proto ApiProvider to application ApiProvider
-function convertProtoToApiProvider(provider: ProtoApiProvider): ApiProvider {
+export function convertProtoToApiProvider(provider: ProtoApiProvider): ApiProvider {
 	switch (provider) {
 		case ProtoApiProvider.ANTHROPIC:
 			return "anthropic"
@@ -286,6 +341,8 @@ function convertProtoToApiProvider(provider: ProtoApiProvider): ApiProvider {
 			return "deepseek"
 		case ProtoApiProvider.QWEN:
 			return "qwen"
+		case ProtoApiProvider.QWEN_CODE:
+			return "qwen-code"
 		case ProtoApiProvider.DOUBAO:
 			return "doubao"
 		case ProtoApiProvider.MISTRAL:
@@ -326,6 +383,10 @@ function convertProtoToApiProvider(provider: ProtoApiProvider): ApiProvider {
 			return "vercel-ai-gateway"
 		case ProtoApiProvider.ZAI:
 			return "zai"
+		case ProtoApiProvider.DIFY:
+			return "dify"
+		case ProtoApiProvider.OCA:
+			return "oca"
 		default:
 			return "anthropic"
 	}
@@ -350,6 +411,7 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		awsSessionToken: config.awsSessionToken,
 		awsRegion: config.awsRegion,
 		awsUseCrossRegionInference: config.awsUseCrossRegionInference,
+		awsUseGlobalInference: config.awsUseGlobalInference,
 		awsBedrockUsePromptCache: config.awsBedrockUsePromptCache,
 		awsUseProfile: config.awsUseProfile,
 		awsAuthentication: config.awsAuthentication,
@@ -377,6 +439,7 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		fireworksModelMaxCompletionTokens: config.fireworksModelMaxCompletionTokens,
 		fireworksModelMaxTokens: config.fireworksModelMaxTokens,
 		qwenApiKey: config.qwenApiKey,
+		qwenCodeOauthPath: config.qwenCodeOauthPath,
 		doubaoApiKey: config.doubaoApiKey,
 		mistralApiKey: config.mistralApiKey,
 		azureApiVersion: config.azureApiVersion,
@@ -399,9 +462,14 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		sapAiResourceGroup: config.sapAiResourceGroup,
 		sapAiCoreTokenUrl: config.sapAiCoreTokenUrl,
 		sapAiCoreBaseUrl: config.sapAiCoreBaseUrl,
+		sapAiCoreUseOrchestrationMode: config.sapAiCoreUseOrchestrationMode,
 		huaweiCloudMaasApiKey: config.huaweiCloudMaasApiKey,
 		zaiApiLine: config.zaiApiLine,
 		zaiApiKey: config.zaiApiKey,
+		difyApiKey: config.difyApiKey,
+		difyBaseUrl: config.difyBaseUrl,
+		ocaBaseUrl: config.ocaBaseUrl,
+		ocaMode: config.ocaMode,
 
 		// Plan mode configurations
 		planModeApiProvider: config.planModeApiProvider ? convertApiProviderToProto(config.planModeApiProvider) : undefined,
@@ -432,8 +500,11 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		planModeSapAiCoreModelId: config.planModeSapAiCoreModelId,
 		planModeHuaweiCloudMaasModelId: config.planModeHuaweiCloudMaasModelId,
 		planModeHuaweiCloudMaasModelInfo: convertModelInfoToProtoOpenRouter(config.planModeHuaweiCloudMaasModelInfo),
+		planModeSapAiCoreDeploymentId: config.planModeSapAiCoreDeploymentId,
 		planModeVercelAiGatewayModelId: config.planModeVercelAiGatewayModelId,
 		planModeVercelAiGatewayModelInfo: convertModelInfoToProtoOpenRouter(config.planModeVercelAiGatewayModelInfo),
+		planModeOcaModelId: config.planModeOcaModelId,
+		planModeOcaModelInfo: convertOcaModelInfoToProtoOcaModelInfo(config.planModeOcaModelInfo),
 
 		// Act mode configurations
 		actModeApiProvider: config.actModeApiProvider ? convertApiProviderToProto(config.actModeApiProvider) : undefined,
@@ -464,11 +535,11 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		actModeSapAiCoreModelId: config.actModeSapAiCoreModelId,
 		actModeHuaweiCloudMaasModelId: config.actModeHuaweiCloudMaasModelId,
 		actModeHuaweiCloudMaasModelInfo: convertModelInfoToProtoOpenRouter(config.actModeHuaweiCloudMaasModelInfo),
+		actModeSapAiCoreDeploymentId: config.actModeSapAiCoreDeploymentId,
 		actModeVercelAiGatewayModelId: config.actModeVercelAiGatewayModelId,
 		actModeVercelAiGatewayModelInfo: convertModelInfoToProtoOpenRouter(config.actModeVercelAiGatewayModelInfo),
-
-		// Favorited model IDs
-		favoritedModelIds: config.favoritedModelIds || [],
+		actModeOcaModelId: config.actModeOcaModelId,
+		actModeOcaModelInfo: convertOcaModelInfoToProtoOcaModelInfo(config.actModeOcaModelInfo),
 	}
 }
 
@@ -491,6 +562,7 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		awsSessionToken: protoConfig.awsSessionToken,
 		awsRegion: protoConfig.awsRegion,
 		awsUseCrossRegionInference: protoConfig.awsUseCrossRegionInference,
+		awsUseGlobalInference: protoConfig.awsUseGlobalInference,
 		awsBedrockUsePromptCache: protoConfig.awsBedrockUsePromptCache,
 		awsUseProfile: protoConfig.awsUseProfile,
 		awsAuthentication: protoConfig.awsAuthentication,
@@ -518,6 +590,7 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		fireworksModelMaxCompletionTokens: protoConfig.fireworksModelMaxCompletionTokens,
 		fireworksModelMaxTokens: protoConfig.fireworksModelMaxTokens,
 		qwenApiKey: protoConfig.qwenApiKey,
+		qwenCodeOauthPath: protoConfig.qwenCodeOauthPath,
 		doubaoApiKey: protoConfig.doubaoApiKey,
 		mistralApiKey: protoConfig.mistralApiKey,
 		azureApiVersion: protoConfig.azureApiVersion,
@@ -540,9 +613,14 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		sapAiResourceGroup: protoConfig.sapAiResourceGroup,
 		sapAiCoreTokenUrl: protoConfig.sapAiCoreTokenUrl,
 		sapAiCoreBaseUrl: protoConfig.sapAiCoreBaseUrl,
+		sapAiCoreUseOrchestrationMode: protoConfig.sapAiCoreUseOrchestrationMode,
 		huaweiCloudMaasApiKey: protoConfig.huaweiCloudMaasApiKey,
 		zaiApiLine: protoConfig.zaiApiLine,
 		zaiApiKey: protoConfig.zaiApiKey,
+		difyApiKey: protoConfig.difyApiKey,
+		difyBaseUrl: protoConfig.difyBaseUrl,
+		ocaBaseUrl: protoConfig.ocaBaseUrl,
+		ocaMode: protoConfig.ocaMode,
 
 		// Plan mode configurations
 		planModeApiProvider:
@@ -576,8 +654,11 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		planModeSapAiCoreModelId: protoConfig.planModeSapAiCoreModelId,
 		planModeHuaweiCloudMaasModelId: protoConfig.planModeHuaweiCloudMaasModelId,
 		planModeHuaweiCloudMaasModelInfo: convertProtoToModelInfo(protoConfig.planModeHuaweiCloudMaasModelInfo),
+		planModeSapAiCoreDeploymentId: protoConfig.planModeSapAiCoreDeploymentId,
 		planModeVercelAiGatewayModelId: protoConfig.planModeVercelAiGatewayModelId,
 		planModeVercelAiGatewayModelInfo: convertProtoToModelInfo(protoConfig.planModeVercelAiGatewayModelInfo),
+		planModeOcaModelId: protoConfig.planModeOcaModelId,
+		planModeOcaModelInfo: convertProtoOcaModelInfoToOcaModelInfo(protoConfig.planModeOcaModelInfo),
 
 		// Act mode configurations
 		actModeApiProvider:
@@ -609,11 +690,10 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		actModeSapAiCoreModelId: protoConfig.actModeSapAiCoreModelId,
 		actModeHuaweiCloudMaasModelId: protoConfig.actModeHuaweiCloudMaasModelId,
 		actModeHuaweiCloudMaasModelInfo: convertProtoToModelInfo(protoConfig.actModeHuaweiCloudMaasModelInfo),
+		actModeSapAiCoreDeploymentId: protoConfig.actModeSapAiCoreDeploymentId,
 		actModeVercelAiGatewayModelId: protoConfig.actModeVercelAiGatewayModelId,
 		actModeVercelAiGatewayModelInfo: convertProtoToModelInfo(protoConfig.actModeVercelAiGatewayModelInfo),
-
-		// Favorited model IDs
-		favoritedModelIds:
-			protoConfig.favoritedModelIds && protoConfig.favoritedModelIds.length > 0 ? protoConfig.favoritedModelIds : undefined,
+		actModeOcaModelId: protoConfig.actModeOcaModelId,
+		actModeOcaModelInfo: convertProtoOcaModelInfoToOcaModelInfo(protoConfig.actModeOcaModelInfo),
 	}
 }
